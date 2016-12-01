@@ -5,27 +5,27 @@ data = [x.strip() for x in inputdata.split(",")]
 data = [(x[0], int(x[1:])) for x in data]
 
 
-# 0 -> up; 1 -> right; 2 -> down; 3 -> left
+UP, RIGHT, DOWN, LEFT = (0,1,2,3)
+
 move = {
-    0: lambda x, y: (x, y + 1),
-    1: lambda x, y: (x + 1, y),
-    2: lambda x, y: (x, y - 1),
-    3: lambda x, y: (x - 1, y)
+    UP:    lambda loc, d: (loc[0]    , loc[1] + d),
+    RIGHT: lambda loc, d: (loc[0] + d, loc[1]    ),
+    DOWN:  lambda loc, d: (loc[0]    , loc[1] - d),
+    LEFT:  lambda loc, d: (loc[0] - d, loc[1]    )
 }
 
 nextDirection = {
-    0: { 'L': 3, 'R': 1},
-    1: { 'L': 0, 'R': 2},
-    2: { 'L': 1, 'R': 3},
-    3: { 'L': 2, 'R': 0},
+    UP:    { 'L': LEFT,  'R': RIGHT },
+    RIGHT: { 'L': UP,    'R': DOWN  },
+    DOWN:  { 'L': RIGHT, 'R': LEFT  },
+    LEFT:  { 'L': DOWN,  'R': UP    }
 }
 
 locations = [(0, 0)]
-direction = 0
+direction = UP
 for d, l in data:
     direction = nextDirection[direction][d]
-    for i in range(l):
-        locations.append(move[direction](*locations[-1]))
+    locations += [move[direction](locations[-1], i) for i in range(1, l+1)]
 
 result = [
     locations[-1],
