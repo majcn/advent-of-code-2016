@@ -27,6 +27,9 @@ for d, l in data:
     direction = nextDirection[direction][d]
     locations += [move[direction](locations[-1], i) for i in range(1, l+1)]
 
+# oneliner :)
+# locations = reduce(lambda res, x: res + [move[x[0]](res[-1], i) for i in range(1, x[1]+1)], reduce(lambda res, x: res + [(nextDirection[res[-1][0]][x[0]], x[1])], data, [(UP, 0)]), [(0,0)])
+
 result = [
     locations[-1],
     next(l for i, l in enumerate(locations) if l in locations[(i+1):])
