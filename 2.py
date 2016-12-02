@@ -32,8 +32,4 @@ keyboard_2 = {
     'D': { 'U': 'B', 'D': 'D', 'L': 'D', 'R': 'D'}
 }
 
-for k in [keyboard_1, keyboard_2]:
-    result = []
-    for i in data:
-        result.append(reduce(lambda x,y: k[x][y], i, '5' if len(result) == 0 else result[-1]))
-    print ''.join(result)
+print map(lambda k: reduce(lambda result, line: result + reduce(lambda curNumber, direction: k[curNumber][direction], line, result[-1]), data, '5')[1:], [keyboard_1, keyboard_2])
