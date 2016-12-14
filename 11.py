@@ -1,208 +1,212 @@
-import itertools
-import heapq
-import copy
-from collections import deque
+from itertools import combinations
 
-floor = 0
-data = [
-    set(['M1', 'M2']),
-    set(['G1']),
-    set(['G2']),
-    set([])
+INPUT = [
+    ['M2', 'M1'],
+    ['G2'],
+    ['G1'],
+    []
 ]
 
-data = [
-    set(['G1', 'M1', 'G6', 'M6', 'G7', 'M7']),
-    set(['G2', 'G3', 'G4', 'G5']),
-    set(['M2', 'M3', 'M4', 'M5']),
-    set([])
-]
+# INPUT = [
+#     ['G1', 'M1'],
+#     ['G2', 'G3', 'G4', 'G5'],
+#     ['M2', 'M3', 'M4', 'M5'],
+#     []
+# ]
 
-checkedItems = set()
-def serialize(floor, grid):
-    return str(floor) + '#' + ';'.join(''.join(sorted(r)) for r in grid)
+# INPUT = [
+#     ['G1', 'M1', 'G6', 'M6', 'G7', 'M7'],
+#     ['G2', 'G3', 'G4', 'G5'],
+#     ['M2', 'M3', 'M4', 'M5'],
+#     []
+# ]
 
-def isValid(grid_row):
-    generators = set(x[1] for x in grid_row if x[0] == 'G')
-    chips      = set(x[1] for x in grid_row if x[0] == 'M')
+NR_ITEMS = max(int(item[1:]) for row in INPUT for item in row)
 
-    return len(generators) == 0 or all([c in generators for c in chips])
+SINGLE_COMBINATIONS = map(lambda x: 1 << x, range(NR_ITEMS*2))
+print SINGLE_COMBINATIONS
+DOUBLE_COMBINATIONS = map(sum, combinations(SINGLE_COMBINATIONS, 2))
+print DOUBLE_COMBINATIONS
+ALL_COMBINATIONS = DOUBLE_COMBINATIONS + SINGLE_COMBINATIONS
 
-def generateup(floor, grid, movedItems):
-    if floor == 3:
+M_MASKS = [1 << (x*2    ) for x in range(NR_ITEMS)]
+G_MASKS = [1 << (x*2 + 1) for x in range(NR_ITEMS)]
+M_MASK = sum(M_MASKS)
+G_MASK = sum(G_MASKS)
+
+FLOOR_MASK = 1 << (NR_ITEMS*2)
+
+
+def convertToBin(item):
+    t = item[0]
+    n = int(item[1:]) - 1
+    return 1 << (n*2 + 1) if t == 'G' else 1 << (n*2)
+
+START = [sum(map(convertToBin, row)) for row in INPUT]
+START[0] += FLOOR_MASK
+START = tuple(START)
+
+
+
+
+def isValidOptionRow(row):
+    gs = row & G_MASK
+    if gs == 0:
+        return True
+
+    ms = row & M_MASK
+    return notLogicalImplication((ms << 1), gs) == 0
+
+def generateup(floor, option, movedItems):
+    cf = option[floor] - movedItems - FLOOR_MASK
+    if not isValidOptionRow(cf):
         return None
 
-    cf = grid[floor] - movedItems
-    if not isValid(cf):
-        return None
-    uf = grid[floor + 1] | movedItems
-    if not isValid(uf):
+    uf = option[floor + 1] + movedItems
+    if not isValidOptionRow(uf):
         return None
 
-    up = copy.deepcopy(grid)
-    up[floor] = cf
-    up[floor + 1] = uf
-    return up
-
-def generatedown(floor, grid, movedItems):
     if floor == 0:
+        return (
+            cf,
+            uf + FLOOR_MASK,
+            option[2],
+            option[3]
+        )
+    if floor == 1:
+        return (
+            option[0],
+            cf,
+            uf + FLOOR_MASK,
+            option[3]
+        )
+    if floor == 2:
+        return (
+            option[0],
+            option[1],
+            cf,
+            uf + FLOOR_MASK
+        )
+
+def generatedown(floor, option, movedItems):
+    cf = option[floor] - movedItems - FLOOR_MASK
+    if not isValidOptionRow(cf):
         return None
 
-    cf = grid[floor] - movedItems
-    if not isValid(cf):
-        return None
-    df = grid[floor - 1] | movedItems
-    if not isValid(df):
+    df = option[floor - 1] + movedItems
+    if not isValidOptionRow(df):
         return None
 
-    down = copy.deepcopy(grid)
-    down[floor] = cf
-    down[floor - 1] = df
-    return down
+    if floor == 1:
+        return (
+            df + FLOOR_MASK,
+            cf,
+            option[2],
+            option[3]
+        )
+    if floor == 2:
+        return (
+            option[0],
+            df + FLOOR_MASK,
+            cf,
+            option[3]
+        )
+    if floor == 3:
+        return (
+            option[0],
+            option[1],
+            df + FLOOR_MASK,
+            cf
+        )
 
-def next(it, floor, grid):
-    global checkedItems
+def getFloor(option):
+    return next(i for i,v in enumerate(option) if v & FLOOR_MASK)
 
-    ss = serialize(floor, grid)
-    if ss in checkedItems:
-        return []
-    checkedItems.add(ss)
+def notLogicalImplication(p, q):
+    return p & ~q
 
-    combinations = itertools.combinations(set([None]) | grid[floor], 2)
-    nextValidGrids = []
-    for c in combinations:
-        cc = set(filter(None, c))
-        up = generateup(floor, grid, cc)
-        if up:
-            # sup = serialize(floor + 1, up)
-            # if sup not in checkedItems:
-                # checkedItems.append(sup)
-            nextValidGrids.append((it + 1, floor + 1, up))
-        down = generatedown(floor, grid, cc)
-        if down:
-            # sdown = serialize(floor - 1, down)
-            # if sdown not in checkedItems:
-                # checkedItems.append(sdown)
-            nextValidGrids.append((it + 1, floor - 1, down))
+cache = set()
+GOAL = FLOOR_MASK + FLOOR_MASK - 1
+RESULT = None
 
-    return nextValidGrids
+def checkLocationAndReturnLocation(it, o):
+    global RESULT
 
-g = deque([(0, 0, data)])
-while True:
-# for i in xrange(10000000):
-    item = g.popleft()
-    if len(item[2][3]) == 14:
-        print "YUHU: " + str(item[0])
-        break
-    # print checkedItems
-    g += next(*item)
-    # print g
+    RESULT = o if o[3] == GOAL else None
+    return RESULT
 
-print "DONE"
+def flattenListIgnoreCache(l):
+    global cache
 
+    r = {item for sublist in l for item in sublist if item not in cache}
+    cache |= r
 
+    return r
 
+graph = {}
+def possibleOptions(option):
+    floor = getFloor(option)
+    row = option[floor]
+    possible_combinations = [x for x in ALL_COMBINATIONS if notLogicalImplication(x, row) == 0]
 
+    ups   = [] if floor == 3 else filter(None, map(lambda x: generateup  (floor, option, x), possible_combinations))
+    downs = [] if floor == 0 else filter(None, map(lambda x: generatedown(floor, option, x), possible_combinations))
 
+    # global graph
+    # rr = ups + downs
+    # for x in rr:
+    #     if x not in graph:
+    #         graph[x] = option
 
-# def filterValid(s):
-#     generators = set(x[1] for x in s if x[0] == 'G')
-#     chips      = set(x[1] for x in s if x[0] == 'M')
+    return ups + downs
 
-#     # print chips
-#     # print generators
-#     return all([c in generators for c in chips])
+def prettyPrint(option):
+    for i, o in enumerate(reversed(option)):
+        e, g5, m5, g4, m4, g3, m3, g2, m2, g1, m1 = '{0:{fill}11b}'.format(o, fill='0')
+        rs = 'F' + str(4 - i)
+        rs += '  E' if e  != '0' else '   '
+        rs += ' G5' if g5 != '0' else '   '
+        rs += ' M5' if m5 != '0' else '   '
+        rs += ' G4' if g4 != '0' else '   '
+        rs += ' M4' if m4 != '0' else '   '
+        rs += ' G3' if g3 != '0' else '   '
+        rs += ' M3' if m3 != '0' else '   '
+        rs += ' G2' if g2 != '0' else '   '
+        rs += ' M2' if m2 != '0' else '   '
+        rs += ' G1' if g1 != '0' else '   '
+        rs += ' M1' if m1 != '0' else '   '
+        print rs
+        # print '{0:{fill}11b}'.format(o, fill='0').replace('0', ' ').replace('1', '#')
+    print
 
-# def checkUp(grid, floor, combinations):
-#     if floor >= 3:
-#         return []
+# options = [START]
+# graph[START] = None
+# it = 0
+# while not any(checkLocationAndReturnLocation(it, o) for o in options):
+#     # noptions = []
+#     # for asdf in options:
+#     #     po = possibleOptions(asdf)
+#     #     for x in po:
+#     #         if x not in graph:
+#     #             graph[x] = asdf
+#     #     noptions.append(po)
+#     # noptions = flattenListIgnoreCache(noptions)
+#     options = flattenListIgnoreCache(map(possibleOptions, options))
+#     # for x in noptions:
+#         # if x in graph:
+#             # graph[x] = options
+#     # options = noptions
 
-#     # print list(combinations)
-#     # print grid
-#     # print floor
-#     # print grid[floor + 1]
-#     # print filter(None, combinations[0])
-#     ns = []
-#     for c in combinations:
-#         ns.append(grid[floor + 1] + filter(None, list(c)))
+#     it += 1
+#     print it
 
-#     # ns = [[i for sub in [grid[floor + 1], filter(None, c)] for i in sub] for c in combinations]
-#     ns = filter(filterValid, ns)
-#     # print ns
-#     return ns
+# print RESULT
+# print prettyPrint(RESULT)
+# print prettyPrint(graph[RESULT])
 
-# def checkDown(grid, floor, combinations):
-#     if floor <= 0:
-#         return []
-
-#     # print floor
-
-#     ns = []
-#     for c in combinations:
-#         ns.append(grid[floor - 1] + filter(None, list(c)))
-#     # ns = [[i for sub in [grid[floor - 1], filter(None, c)] for i in sub] for c in combinations]
-#     ns = filter(filterValid, ns)
-#     # print ns
-
-#     return ns
-
-# def generateGrid(grid, floor, states, isUp):
-#     r = copy.deepcopy(grid)
-
-#     if isUp:
-#         r[floor + 1] = states
-#         rr = r[floor]
-#         for s in states:
-#             if s in rr:
-#                 rr.remove(s)
-#     else:
-#         r[floor - 1] = states
-#         rr = r[floor]
-#         for s in states:
-#             if s in rr:
-#                 rr.remove(s)
-
-#     return r
-
-# def getNext(it, floor, grid):
-#     combinations = [(None, None)] + list(itertools.combinations([None] + grid[floor], 2))
-#     upStates = checkUp(grid, floor, combinations)
-#     downStates = checkDown(grid, floor, combinations)
-
-#     # print upStates
-#     # print downStates
-#     u = map(lambda x: (it + 1, floor + 1, generateGrid(grid, floor, x, True )), upStates)
-#     d = map(lambda x: (it + 1, floor - 1, generateGrid(grid, floor, x, False)), downStates)
-#     # print u + d
-#     return u + d
-
-# paths = getNext(0, 0, data)
-# # result = {0: data}
-# for i in range(190000):
-#     # print paths
-
-#     el = paths.pop(0)
-#     # result[el[0]] = (el[1], el[2])
-#     if len(el[2][3]) == 10:
-#         print el[0]
-#         break
-#     paths += getNext(*el)
-#     # for s in getNextStates()
-#     # combinations = itertools.combinations([None] + data[E], 2)
-#     # upStates = checkUp(E, combinations)
-#     # downStates = checkDown(E, combinations)
-
-#     # for s in getNextStates(E):
-
-#     # heapq.heappush(paths, (i, ))
-# # print result
-# # combinations = itertools.combinations([None] + data[E], 2)
-# # upStates = checkUp(E, combinations)
-
-# # E = 1
-# # data[E] = upStates[0]
-# # combinations = itertools.combinations([None] + data[E], 2)
-# # upStates = checkUp(E, combinations)
-
-
-# # print combinations
+# e = RESULT
+# while e:
+#     prettyPrint(e)
+#     e = graph[e]
+# print
+# print it
