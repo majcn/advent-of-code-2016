@@ -1,5 +1,10 @@
-INPUT = [(5,4), (2,1)]
-INPUT = [(13,10), (17,15), (19,17), (7,1), (5,0), (3,1)]
-INPUT = [(13,10), (17,15), (19,17), (7,1), (5,0), (3,1), (11,0)]
+import re
 
-print next(time for time in xrange(1 << 31) if all((INPUT[i][1] + i + time + 1) % INPUT[i][0] == 0 for i in range(len(INPUT))))
+import sys
+inputdata = sys.stdin.readlines()
+
+data = [x.rstrip('\n') for x in inputdata]
+prog = re.compile(r'^Disc #\d* has (\d*) positions; at time=0, it is at position (\d*)\.$')
+INPUT = [tuple(map(int, prog.match(d).groups())) for d in data]
+
+print [next(time for time in xrange(sys.maxint) if all((ci[i][1] + i + time + 1) % ci[i][0] == 0 for i in range(len(ci)))) for ci in [INPUT, INPUT + [(11, 0)]]]
