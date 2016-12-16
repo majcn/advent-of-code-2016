@@ -1,16 +1,13 @@
-import java.util.Arrays;
 import java.util.HashSet;
-import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class T11 {
 
-	public static class Option {
-		private final int[] option;
+	static class Option {
+		final int[] option;
 
-		public Option(int[] option) {
+		Option(int[] option) {
 			this.option = option;
 		}
 
@@ -177,19 +174,33 @@ public class T11 {
 	}
 
 	static boolean cacheStuff(int[] option) {
+		if (option == null) {
+			return false;
+		}
+
 		return cache.add(new Option(option));
 	}
 
-	static Stream<int[]> getPossibleOptions(int[] option) {
+	static Set<int[]> getPossibleOptions(int[] option) {
 		int floor = getFloor(option);
 		int row = option[floor];
 
-		return allCombinations.parallelStream()
-			.filter(x -> notLogicalImplication(x, row))
-			.map(x -> new int[][] { generateUp(floor, option, x), generateDown(floor, option, x) })
-			.flatMap(Arrays::stream)
-			.filter(Objects::nonNull)
-			.filter(T14::cacheStuff);
+		Set<int[]> result = new HashSet<>(allCombinations.size() * 2);
+		for (Integer x : allCombinations) {
+			if (notLogicalImplication(x, row)) {
+				int[] up = generateUp(floor, option, x);
+				if (cacheStuff(up)) {
+					result.add(up);
+				}
+
+				int[] down = generateDown(floor, option, x);
+				if (cacheStuff(down)) {
+					result.add(down);
+				}
+			}
+		}
+
+		return result;
 	}
 
 	public static void main(String[] args) {
@@ -212,14 +223,14 @@ public class T11 {
 
 		Set<int[]> options = new HashSet<>();
 		options.add(INPUT);
-		long start = System.nanoTime();
 
+		long start = System.nanoTime();
 		while(true) {
 			it++;
 
 			options = options.parallelStream()
-				.map(T14::getPossibleOptions)
-				.flatMap(x -> x)
+				.map(T13::getPossibleOptions)
+				.flatMap(Set::stream)
 				.collect(Collectors.toSet());
 
 			System.out.println(it + "    " + options.size() + "   " + "Time taken(s): " + (System.nanoTime() - start) / 1.0e9);
