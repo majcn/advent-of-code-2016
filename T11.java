@@ -16,7 +16,7 @@ public class T11 {
 			final int prime = 31;
 			int result = 1;
 
-			for (for int i = 0; i < option.length; i++) {
+			for (int i = 0; i < option.length; i++) {
 				result = prime * result + option[i];
 			}
 
@@ -229,7 +229,7 @@ public class T11 {
 			it++;
 
 			options = options.parallelStream()
-				.map(T13::getPossibleOptions)
+				.map(T11::getPossibleOptions)
 				.flatMap(Set::stream)
 				.collect(Collectors.toSet());
 
