@@ -1,16 +1,13 @@
 INPUT = '.^^^.^.^^^^^..^^^..^..^..^^..^.^.^.^^.^^....^.^...^.^^.^^.^^..^^..^.^..^^^.^^...^...^^....^^.^^^^^^^'
-MAX_ROWS = 400000
+MAX_ROWS = 40
 
-def isTrap(left, right):
-    return (left and not right) or (not left and right)
+def isNotTrap(left, right):
+    return (left and right) or (not left and not right)
 
-result = len(INPUT) * MAX_ROWS
+def newState(result, state):
+    s = [True] + state + [True]
+    newState = [isNotTrap(s[i], s[i+2]) for i in range(len(INPUT))]
+    return (result + sum(newState), newState)
 
-state = map(lambda x: x == '^', INPUT)
-for x in range(MAX_ROWS):
-    result -= sum(state)
-
-    prevState = [False] + state + [False]
-    state = [isTrap(prevState[i], prevState[i+2]) for i in range(len(INPUT))]
-
-print result
+state = map(lambda x: x == '.', INPUT)
+print reduce(lambda prevState, _: newState(*prevState), range(MAX_ROWS-1), (sum(state), state))[0]
