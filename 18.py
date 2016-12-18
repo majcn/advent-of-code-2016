@@ -1,5 +1,5 @@
 INPUT = '.^^^.^.^^^^^..^^^..^..^..^^..^.^.^.^^.^^....^.^...^.^^.^^.^^..^^..^.^..^^^.^^...^...^^....^^.^^^^^^^'
-MAX_ROWS = 40
+MAX_ROWS = 400000
 
 def isNotTrap(left, right):
     return (left and right) or (not left and not right)
