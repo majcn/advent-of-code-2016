@@ -5,6 +5,7 @@ inputdata = sys.stdin.readlines()
 
 data = [x.rstrip('\n') for x in inputdata]
 
+
 def getRegexResult(prog, s):
     m = prog.match(s)
     return m.groups() if m else []
@@ -21,7 +22,7 @@ def handle_sp(s, x, y):
     return ''.join(lresult)
 
 def handle_sl(s, x, y):
-    return s.replace(x, '1').replace(y, x).replace('1', y)
+    return s.replace(x, '$').replace(y, x).replace('$', y)
 
 def handle_rl(s, x):
     x = int(x)
@@ -84,9 +85,4 @@ print run('abcdefgh')
 
 # ugly part 2
 from itertools import permutations
-for p in permutations('abcdefgh'):
-    p = ''.join(p)
-
-    if run(p) == 'fbgdceah':
-        print p
-        break
+print next(''.join(p) for p in permutations('abcdefgh') if run(''.join(p)) == 'fbgdceah')
